@@ -33,10 +33,11 @@ typedef struct{
 
 typedef struct{
     char nome[TAM_MAX_NOME];
-    Carta maoJogador[MAX_CARTAS_MAO_JOGADOR];
+    Carta maoJogador[MAX_CARTAS_MAO_JOGADOR];   //Modificar p/ lista ligada
     int numCartasMaoJogador;
     int primeiraJogada;
 } Jogador;
+typedef Jogador* Jogador_PTR;
 
 void getCorPadrao(){
     textcolor(LIGHTGRAY);
@@ -136,7 +137,7 @@ void ordenar_cartas(Carta vet[], int tam){
     }
 }
 
-void inicializar_jogadores(Jogador jog[], int qtdJog, Baralho *b){
+void inicializar_jogadores(Jogador_PTR jog, int qtdJog, Baralho *b){
     int i, j;
     for(i = 0; i < qtdJog; i++){
         printf("Nome do jogador %d [MAX %d carac]: ", (i + 1), TAM_MAX_NOME);
@@ -263,7 +264,7 @@ char realizar_jogada(Mesa *mesa, Jogador *jog, Baralho *b){
     return retorno;
 }
 
-void inicializar_jogo(Mesa *mesa, Jogador jog[], int qtdJog, Baralho *b){
+void inicializar_jogo(Mesa *mesa, Jogador_PTR jog, int qtdJog, Baralho *b){
     int i = 0, aux;
     char retornoJogada;
     do{
@@ -296,8 +297,8 @@ int main(){
         } else
             qtdJog = entradaUsu - '0';
     }while(entradaUsu < '2' || entradaUsu > '4');
-    Jogador jogador[qtdJog];
-    inicializar_jogadores(jogador, qtdJog, &baralho);
-    inicializar_jogo(&mesa, jogador, qtdJog, &baralho);
+    Jogador_PTR jog = (Jogador_PTR) malloc(qtdJog * sizeof(Jogador));
+    inicializar_jogadores(jog, qtdJog, &baralho);
+    inicializar_jogo(&mesa, jog, qtdJog, &baralho);
     return 0;
 }
