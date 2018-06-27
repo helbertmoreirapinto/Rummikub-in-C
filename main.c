@@ -339,6 +339,8 @@ int validar_jogada(Sequencia *seq){
         return 0;
     int ord;
     int aux;
+    int achouCoringa = 0;
+    Carta cartaAux;
     ordenar_cartas(seq->carta, seq->numCartas);
     if(seq->carta[i].nipe == seq->carta[i+1].nipe){
         ord = seq->carta[i].nipe;
@@ -346,9 +348,29 @@ int validar_jogada(Sequencia *seq){
         aux--;
         printf("VALID SEQ DE MESMO NIPE (1,2,3,4,5,6)\n");
         for(i = 0; i < seq->numCartas; i++){
-            aux++;
-            if(seq->carta[i].nipe != ord || ((i+1) < seq->numCartas && aux != (hexa_to_dec(seq->carta[i+1].valor)-1))){
+            if(seq->carta[i].nipe != ord && seq->carta[i].nipe != 4){
                 return 0;
+            }
+            aux++;
+            if((i+1) < seq->numCartas){
+                if(aux != (hexa_to_dec(seq->carta[i+1].valor)-1)){
+                    achouCoringa = 0;
+                    for(int j = i+1; j < seq->numCartas; j++){    /*verificar se tem coringa no restante do vetor*/
+                        if(seq->carta[j].nipe == 4){
+                            cartaAux = seq->carta[seq->numCartas-1];
+                            for(int k = (seq->numCartas-1); k > i ; k--){  /*mover colocar coringa la onde falta a carta (apos o i) e mover td mundo 1 pro lado*/
+                                seq->carta[k] = seq->carta[k-1];
+                            }
+                            seq->carta[i+1] = cartaAux;
+                            achouCoringa = 1;
+                            break;
+
+                        }
+                    }
+                    if(!achouCoringa){
+                        return 0;
+                    }
+                }
             }
         }
     }else{
