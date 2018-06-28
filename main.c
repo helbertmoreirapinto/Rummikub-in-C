@@ -35,6 +35,7 @@ typedef struct{
     char nome[TAM_MAX_NOME+1];
     Carta *maoJogador;
     int numCartasMaoJogador;
+    int pontos;
     int primeiraJogada;
 } Jogador;
 
@@ -53,8 +54,8 @@ typedef Mesa* Mesa_PTR;
 int main();
 void get_cor_nipe(int);
 void get_cor_padrao();
-char dec_to_hexa(int);
-void error_mem();
+int get_code_nipe(char);
+char get_simb_nipe(int);
 char dec_to_hexa(int);
 int hexa_to_dec(char);
 void exibir_baralho(Baralho_PTR);
@@ -62,19 +63,23 @@ void inicializar_baralho(Baralho_PTR);
 void remover_carta_baralho(Baralho_PTR, int);
 Carta pegar_carta_baralho(Baralho_PTR);
 void ordenar_cartas(Carta_PTR, int);
+void ordenar_jogadores(Jogador_PTR, int);
+void ordenar_indice(char*, int);
 void corrigir_enter(char*);
 void inicializar_jogadores(Jogador_PTR, int, Baralho_PTR);
-int finalizar_jogo(Jogador_PTR);
+int finalizar_jogo(Jogador_PTR, Baralho_PTR);
 void tempo_entre_jogadas(Jogador_PTR);
 void exibir_mao_jogador(Jogador_PTR);
 void exibir_seq_mesa(Mesa_PTR);
 int get_indice_por_letra(char);
+void remover_cartas_mao_jogador(Jogador_PTR, char*);
 void realizar_jogada(Mesa_PTR mesa, Jogador_PTR, Baralho_PTR);
 void error_mem();
 Sequencia_PTR get_sequencia_mao(Carta_PTR, char*);
 int validar_inidice(char*);
 int validar_jogada(Sequencia_PTR);
 void iniciar_jogo(Mesa_PTR, Jogador_PTR, int, Baralho_PTR);
+void contagem_pontos(Jogador_PTR);
 
 /*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*/
 
@@ -87,21 +92,29 @@ int main(){
     Mesa_PTR mesa = (Mesa_PTR)malloc(sizeof(Mesa));
     mesa->numSequencias = 0;
     do{
-        printf("Quantidade de jogadores [2-4]: ");
+        printf("Quantidade de jogadores [2-5]: ");
         setbuf(stdin, NULL);
         scanf("%c", &entradaUsu);
-        if(entradaUsu < '2' || entradaUsu > '4'){
+        if(entradaUsu < '2' || entradaUsu > '5'){
             system("CLS");
             printf("Valor invalido\n");
         } else
             qtdJog = entradaUsu - '0';
-    }while(entradaUsu < '2' || entradaUsu > '4');
+    }while(entradaUsu < '2' || entradaUsu > '5');
     Jogador_PTR jog = (Jogador_PTR) malloc(qtdJog * sizeof(Jogador));
     inicializar_jogadores(jog, qtdJog, baralho);
     iniciar_jogo(mesa, jog, qtdJog, baralho);
 
-    /* jogo finalizado */
-    /* liberando espaco na memoria */
+    ordenar_jogadores(jog, qtdJog);
+    system("CLS");
+
+    /* exibindo pontuacao dos jogadores */
+    printf("|    | JOGADOR              | PONTOS   |\n");
+    for(int i = 0; i < qtdJog; i++)
+        printf("| 0%d | %-20s | %04d pts |\n",(i+1),jog[i].nome, jog[i].pontos);
+
+
+    /* jogo finalizado */ /* liberando espaco na memoria */
     free(baralho);
     free(mesa);
     free(jog);
@@ -110,6 +123,28 @@ int main(){
 
 void get_cor_padrao(){
     textcolor(LIGHTGRAY);
+}
+
+int get_code_nipe(char nipe){
+    switch(nipe){
+        case '!': return 0;
+        case '@': return 1;
+        case '#': return 2;
+        case '$': return 3;
+        case '*': return 4;
+        default: return -1;
+    }
+}
+
+char get_simb_nipe(int nipe){
+    switch(nipe){
+        case 0: return '!';
+        case 1: return '@';
+        case 2: return '#';
+        case 3: return '$';
+        case 4: return '*';
+        default: return '\0';
+    }
 }
 
 void get_cor_nipe(int cor){
@@ -198,6 +233,28 @@ void ordenar_cartas(Carta_PTR vet, int tam){
             }
 }
 
+void ordenar_jogadores(Jogador_PTR jog, int qtd){
+    Jogador aux;
+    for(int j = qtd - 1; j >= 1; j--)
+        for(int i = 0; i < j; i++)
+            if(jog[i].pontos < jog[i+1].pontos){
+                aux = jog[i];
+                jog[i] = jog[i+1];
+                jog[i+1] = aux;
+            }
+}
+
+void ordenar_indice(char *vet, int tam){
+    char aux;
+    for(int j = tam - 1; j >= 1; j--)
+        for(int i = 0; i < j; i++)
+            if(vet[i] > vet[i+1]){
+                aux = vet[i];
+                vet[i] = vet[i+1];
+                vet[i+1] = aux;
+            }
+}
+
 void corrigir_enter(char *vet){
     for(int i = 0; i < TAM_MAX_NOME; i++)
         if(vet[i] == '\n'){
@@ -226,12 +283,14 @@ void inicializar_jogadores(Jogador_PTR jog, int qtdJog, Baralho_PTR b){
     }
 }
 
-int finalizar_jogo(Jogador_PTR jog){
-    if(!jog->numCartasMaoJogador)
+int finalizar_jogo(Jogador_PTR jog, Baralho_PTR bar){
+    if(!jog->numCartasMaoJogador || !bar->numCartas)
         return 1;
     return 0;
 }
 
+/* X segundos para trocar de jog, baseado no define TIME_ENTRE_JOG */
+/* Criei essa opcao para dar a possibilidade de um jogador nao ver a carta do outro */
 void tempo_entre_jogadas(Jogador_PTR jog){
     for(int i = 0; i < TIME_ENTRE_JOG; i++){
         system("CLS");
@@ -243,21 +302,23 @@ void tempo_entre_jogadas(Jogador_PTR jog){
 
 void exibir_mao_jogador(Jogador_PTR jog){
     printf("MAO:\n");
-    char var = 'a';
+    char var = 'A';
     for(int i = 0; i < jog->numCartasMaoJogador; i++){
         get_cor_nipe(jog->maoJogador[i].nipe);
         printf("%c ",jog->maoJogador[i].valor);
     }
     get_cor_padrao();
     printf("\n");
-    for(int i = 0; i < jog->numCartasMaoJogador; i++)
-        printf("%c ", var++);
+    for(int i = 0; i < jog->numCartasMaoJogador; i++){
+        printf("%c ", var);
+        var = (var != 'Z')? var+1 : 'a';
+    }
     printf("\n\n");
 }
 
 void exibir_seq_mesa(Mesa_PTR mesa){
     printf("MESA:\n");
-    if(!mesa->numSequencias && !mesa->numTemp)
+    if(!mesa->numSequencias)
         printf("(Vazio)\n");
     else{
         for(int i = 0; i < mesa->numSequencias; i++){
@@ -269,6 +330,10 @@ void exibir_seq_mesa(Mesa_PTR mesa){
             get_cor_padrao();
             printf("\n");
         }
+    }
+    if(mesa->numTemp){
+        printf("----------------------------------------\n");
+        printf("TEMP:\n");
         for(int i = 0; i < mesa->numTemp; i++){
             printf("Temp %d -> ",(i+1));
             for(int j = 0; j < mesa->temp[i].numCartas; j++){
@@ -283,21 +348,36 @@ void exibir_seq_mesa(Mesa_PTR mesa){
 }
 
 int get_indice_por_letra(char c){
-    if(c >= 'a' && c <= 'z')
-        return c - 'a';
     if(c >= 'A' && c <= 'Z')
-        return c - 'A' + 26;
+        return c - 'A';
+    if(c >= 'a' && c <= 'z')
+        return c - 'a' + 26;
     return -1;
 }
 
+void remover_cartas_mao_jogador(Jogador_PTR jog, char *indice){
+    int tam = strlen(indice);
+    ordenar_indice(indice, tam);
+    for(int i = (tam-1); i >= 0; i--)
+        for(int j = get_indice_por_letra(indice[i]); j < jog->numCartasMaoJogador; j++)
+            if((j+1) < jog->numCartasMaoJogador)
+                jog->maoJogador[j] = jog->maoJogador[j+1];
+    jog->numCartasMaoJogador -= tam;
+    jog->maoJogador = (Carta_PTR)realloc(jog->maoJogador, jog->numCartasMaoJogador * sizeof(Carta));
+}
+
 void realizar_jogada(Mesa_PTR mesa, Jogador_PTR jog, Baralho_PTR b){
+    /* Caso jogador queria voltar sua mao e a mesa para as situacoes iniciais */
+    Mesa_PTR mesaOriginal = (Mesa_PTR)malloc(sizeof(Mesa));
+    Jogador_PTR jogOriginal = (Jogador_PTR)malloc(sizeof(Jogador));
+    *mesaOriginal = *mesa;
+    *jogOriginal = *jog;
+
     char entradaUsuario;
     int seqUsu;
     int auxNumMaoJogador = jog->numCartasMaoJogador;
     int entradaValida;
     char seqJogada[auxNumMaoJogador];
-    int indice;
-    int i;
     Sequencia_PTR seqTemp;
     mesa->temp = NULL;
     mesa->numTemp = 0;
@@ -335,30 +415,26 @@ void realizar_jogada(Mesa_PTR mesa, Jogador_PTR jog, Baralho_PTR b){
             setbuf(stdin,NULL);
             fscanf(stdin, "%s", seqJogada);
             seqTemp = get_sequencia_mao(jog->maoJogador, seqJogada);
-            if(validar_inidice(seqJogada) && validar_jogada(seqTemp)){
+            if(validar_inidice(seqJogada)){
                 mesa->numTemp++;
                 mesa->temp = (Sequencia_PTR)realloc(mesa->temp, mesa->numTemp*sizeof(Sequencia));
                 if(!mesa->temp)error_mem();
                 mesa->temp[mesa->numTemp-1] = *seqTemp;
+                remover_cartas_mao_jogador(jog, seqJogada);
             }
-            for(i = 0; i < strlen(seqJogada); i++){
-                indice = get_indice_por_letra(seqJogada[i]);
-                get_cor_nipe(jog->maoJogador[indice].nipe);
-                printf("%c ",jog->maoJogador[indice].valor);
-            }
-            printf("\n");
-            get_cor_padrao();
-            system("PAUSE");
         }
     }while(entradaUsuario!='3');
 
-    if(jog->numCartasMaoJogador == auxNumMaoJogador){   //Jogador nao desceu carta, entao deve comprar uma no monte
+    if(jog->numCartasMaoJogador == auxNumMaoJogador && b->numCartas){   //Jogador nao desceu carta, entao deve comprar uma no monte
         jog->numCartasMaoJogador++;
         jog->maoJogador = (Carta*)realloc(jog->maoJogador, jog->numCartasMaoJogador*sizeof(Carta));
         if(!jog->maoJogador)error_mem();
         jog->maoJogador[jog->numCartasMaoJogador-1] = pegar_carta_baralho(b);
         ordenar_cartas(jog->maoJogador, jog->numCartasMaoJogador);
     }
+
+    free(mesaOriginal);
+    free(jogOriginal);
 }
 
 void error_mem(){
@@ -394,63 +470,53 @@ int validar_inidice(char *ind){
     return 1;
 }
 
+/* Valida sequencia recebida */
 int validar_jogada(Sequencia_PTR seq){
-    int i = 0;
     if(!seq || seq->numCartas < 3)
         return 0;
-    int ord;
-    int aux;
-    int achouCoringa = 0;
+    int i = 0;
+    int ord, aux;
+    int flagCoringa = 0;
     Carta cartaAux;
+
     ordenar_cartas(seq->carta, seq->numCartas);
     if(seq->carta[i].nipe == seq->carta[i+1].nipe){
         ord = seq->carta[i].nipe;
         aux = hexa_to_dec(seq->carta[i].valor);
         aux--;
-        printf("VALID SEQ DE MESMO NIPE (1,2,3,4,5,6)\n");
         for(i = 0; i < seq->numCartas; i++){
-            if(seq->carta[i].nipe != ord && seq->carta[i].nipe != 4){
+            if(seq->carta[i].nipe != ord && seq->carta[i].nipe != 4)
                 return 0;
-            }
             aux++;
             if((i+1) < seq->numCartas){
                 if(aux != (hexa_to_dec(seq->carta[i+1].valor)-1)){
-                    achouCoringa = 0;
-                    for(int j = i+1; j < seq->numCartas; j++){    /*verificar se tem coringa no restante do vetor*/
+                    flagCoringa = 0;
+                    for(int j = i+1; j < seq->numCartas; j++)   /* verificar se tem coringa no restante do vetor */
                         if(seq->carta[j].nipe == 4){
                             cartaAux = seq->carta[seq->numCartas-1];
-                            for(int k = (seq->numCartas-1); k > i ; k--){  /*mover colocar coringa la onde falta a carta (apos o i) e mover td mundo 1 pro lado*/
+                            for(int k = (seq->numCartas-1); k > i ; k--)    /* mover colocar coringa la onde falta a carta (apos o i) e mover td mundo 1 pro lado */
                                 seq->carta[k] = seq->carta[k-1];
-                            }
                             seq->carta[i+1] = cartaAux;
-                            achouCoringa = 1;
+                            flagCoringa = 1;
                             break;
 
                         }
-                    }
-                    if(!achouCoringa){
+                    if(!flagCoringa)
                         return 0;
-                    }
                 }
             }
         }
-    }else{
+    } else {
         ord = hexa_to_dec(seq->carta[i].valor);
-        printf("VALID SEQ DE MESMO VALOR (7,7,7,7)\n");
-        for(i = 0; i < seq->numCartas; i++){
+        for(i = 0; i < seq->numCartas; i++)
             if(seq->carta[i].valor != 'X'){
-                if(hexa_to_dec(seq->carta[i].valor) != ord){
+                if(hexa_to_dec(seq->carta[i].valor) != ord)
                     return 0;
-                }
-                for(int j = 0; j < seq->numCartas; j++){
-                    if(i != j && (seq->carta[i].nipe == seq->carta[j].nipe)){
+                for(int j = 0; j < seq->numCartas; j++)
+                    if(i != j && (seq->carta[i].nipe == seq->carta[j].nipe))
                         return 0;
-                    }
-                }
             }
-        }
     }
-
     return 1;
 }
 
@@ -460,6 +526,20 @@ void iniciar_jogo(Mesa_PTR mesa, Jogador_PTR jog, int qtdJog, Baralho_PTR b){
         tempo_entre_jogadas(&jog[i]);
         system("CLS");
         realizar_jogada(mesa, &jog[i], b);
-        aux = i; i = (i + 1 == qtdJog) ? 0 : (i + 1);
-    } while(!finalizar_jogo(&jog[aux]));
+        aux = i; i = (i + 1 == qtdJog) ? 0 : (i + 1); /* alterna entre os jogadores */
+    } while(!finalizar_jogo(&jog[aux], b));
+    for(int j = 0; j < qtdJog; j++)
+        contagem_pontos(&jog[j]);
+}
+
+void contagem_pontos(Jogador_PTR jog){
+    int soma = 0;
+    for(int i = 0; i < jog->numCartasMaoJogador; i++){
+        if(jog->maoJogador[i].nipe != 4){
+            soma += hexa_to_dec(jog->maoJogador[i].valor);
+        }else{
+            soma += 20;
+        }
+    }
+    jog->pontos = soma * (-1);
 }
