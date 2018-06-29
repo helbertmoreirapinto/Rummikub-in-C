@@ -93,6 +93,7 @@ int main(){
     inicializar_baralho(baralho);
     Mesa_PTR mesa = (Mesa_PTR)malloc(sizeof(Mesa));
     mesa->numSequencias = 0;
+    mesa->sequencia = NULL;
     do{
         printf("Quantidade de jogadores [2-5]: ");
         setbuf(stdin, NULL);
@@ -154,10 +155,10 @@ char get_simb_nipe(int nipe){
 
 void get_cor_nipe(int cor){
     switch(cor){
-        case 0: textcolor(LIGHTBLUE); break;
-        case 1: textcolor(LIGHTGREEN); break;
-        case 2: textcolor(YELLOW); break;
-        case 3: textcolor(LIGHTRED); break;
+        case 0: textcolor(LIGHTRED); break;
+        case 1: textcolor(YELLOW); break;
+        case 2: textcolor(LIGHTGREEN); break;
+        case 3: textcolor(LIGHTCYAN); break;
         default: textcolor(WHITE);
     }
 }
@@ -310,12 +311,12 @@ void exibir_mao_jogador(Jogador_PTR jog){
     char var = 'A';
     for(int i = 0; i < jog->numCartasMaoJogador; i++){
         get_cor_nipe(jog->maoJogador[i].nipe);
-        printf("%c ",jog->maoJogador[i].valor);
+        printf("%c%c ",jog->maoJogador[i].valor, get_simb_nipe(jog->maoJogador[i].nipe));
     }
     get_cor_padrao();
     printf("\n");
     for(int i = 0; i < jog->numCartasMaoJogador; i++){
-        printf("%c ", var);
+        printf("%c  ", var);
         var = (var != 'Z')? var+1 : 'a';
     }
     printf("\n\n");
@@ -330,7 +331,7 @@ void exibir_seq_mesa(Mesa_PTR mesa){
             printf("Seq %d -> ",(i+1));
             for(int j = 0; j < mesa->sequencia[i].numCartas; j++){
                 get_cor_nipe(mesa->sequencia[i].carta[j].nipe);
-                printf("%c ", mesa->sequencia[i].carta[j].valor);
+                printf("%c%c ", mesa->sequencia[i].carta[j].valor, get_simb_nipe(mesa->sequencia[i].carta[j].nipe));
             }
             get_cor_padrao();
             printf("\n");
@@ -343,7 +344,7 @@ void exibir_seq_mesa(Mesa_PTR mesa){
             printf("Temp %d -> ",(i+1));
             for(int j = 0; j < mesa->temp[i].numCartas; j++){
                 get_cor_nipe(mesa->temp[i].carta[j].nipe);
-                printf("%c ", mesa->temp[i].carta[j].valor);
+                printf("%c%c ", mesa->temp[i].carta[j].valor, get_simb_nipe(mesa->temp[i].carta[j].nipe));
             }
             get_cor_padrao();
             printf("\n");
@@ -369,6 +370,7 @@ void remover_cartas_mao_jogador(Jogador_PTR jog, char *indice){
                 jog->maoJogador[j] = jog->maoJogador[j+1];
     jog->numCartasMaoJogador -= tam;
     jog->maoJogador = (Carta_PTR)realloc(jog->maoJogador, jog->numCartasMaoJogador * sizeof(Carta));
+    if(!jog->maoJogador)error_mem();
 }
 
 int continuar_jogada(){
@@ -465,10 +467,14 @@ void realizar_jogada(Mesa_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
                 }
             }
             if(flagJogadaValida){
-                mesa->numSequencias += mesa->numTemp;
-                mesa->sequencia = (Sequencia_PTR)realloc(mesa->sequencia, mesa->numSequencias * sizeof(Sequencia));
-                for(int i = 0; i < mesa->numTemp; i++)
-                    mesa->sequencia[(mesa->numSequencias - mesa->numTemp) + i] = mesa->temp[i];
+                if(mesa->numTemp){
+                    mesa->numSequencias += mesa->numTemp;
+                    mesa->sequencia = (Sequencia_PTR)realloc(mesa->sequencia, mesa->numSequencias * sizeof(Sequencia));
+                    if(!mesa->sequencia) error_mem();
+                    for(int i = 0; i < mesa->numTemp; i++)
+                        mesa->sequencia[(mesa->numSequencias - mesa->numTemp) + i] = mesa->temp[i];
+                    mesa->numTemp = 0;
+                }
                 free(jogBkp);
             }else if(!continuar_jogada()){
                 flagJogadaValida = 1;
