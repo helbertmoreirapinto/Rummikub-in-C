@@ -59,12 +59,15 @@ typedef Mesa_PTR* Mesa_PTR_PTR;
 
 /* Prototipo de funcoes */
 int main();
+Baralho_PTR get_baralho_file();
 void get_cor_naipe(int);
 void get_cor_padrao();
 int get_code_naipe(char);
 char get_simb_naipe(int);
 char dec_to_hexa(int);
 int hexa_to_dec(char);
+void embaralhar(Baralho_PTR);
+void distribuir_cartas(Jogador_PTR_PTR, int, Baralho_PTR);
 void exibir_baralho(Baralho_PTR);
 void inicializar_baralho(Baralho_PTR);
 void remover_carta_baralho(Baralho_PTR, int);
@@ -73,7 +76,7 @@ void ordenar_cartas(Carta_PTR, int);
 void ordenar_jogadores(Jogador_PTR*, int);
 void ordenar_indice(char*, int);
 void corrigir_enter(char*);
-void inicializar_jogadores(Jogador_PTR*, int, Baralho_PTR);
+void inicializar_jogadores(Jogador_PTR_PTR, int, Baralho_PTR);
 bool finalizar_jogo(Jogador_PTR, Baralho_PTR);
 void tempo_entre_jogadas(Jogador_PTR);
 void exibir_mao_jogador(Jogador_PTR);
@@ -82,39 +85,46 @@ int get_indice_por_letra(char);
 void remover_cartas_mao_jogador(Jogador_PTR, char*);
 bool continuar_jogada();
 void realizar_jogada(Mesa_PTR_PTR, Jogador_PTR_PTR, Baralho_PTR);
+void remover_cartas_sequencia(Sequencia_PTR, char*);
 void remover_sequencia_mesa(Mesa_PTR, char*, int);
 void error_mem();
 Sequencia_PTR get_sequencia_mao(Carta_PTR, char*, int*);
 bool validar_inidice(char*, int);
 bool validar_jogada(Sequencia_PTR);
-void iniciar_jogo(Mesa_PTR, Jogador_PTR*, int, Baralho_PTR);
+void iniciar_jogo(Mesa_PTR, Jogador_PTR_PTR, int, Baralho_PTR);
 void contagem_pontos(Jogador_PTR);
 
 /*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*/
 
 int main() {
+	system("MODE con cols=1024 lines=768");
 	char entradaUsu;
 	int qtdJog = 0;
 	srand((unsigned) time(NULL));
-	Baralho_PTR baralho = (Baralho_PTR) malloc(sizeof(Baralho));
-	inicializar_baralho(baralho);
+	Baralho_PTR baralho = get_baralho_file();
+	if(!baralho){
+        baralho = (Baralho_PTR) malloc(sizeof(Baralho));
+        inicializar_baralho(baralho);
+        embaralhar(baralho);
+	}
 	Mesa_PTR mesa = (Mesa_PTR) malloc(sizeof(Mesa));
 	mesa->numSequencias = 0;
 	mesa->sequencia = NULL;
 	do {
-		printf("Quantidade de jogadores [2-5]: ");
+		printf("Quantidade de jogadores [1-5]: ");
 		setbuf(stdin, NULL);
 		scanf("%c", &entradaUsu);
-		if (entradaUsu < '2' || entradaUsu > '5') {
+		if (entradaUsu < '1' || entradaUsu > '5') {
 			system("CLS");
 			printf("Valor invalido\n");
 		} else
 			qtdJog = entradaUsu - '0';
-	} while (entradaUsu < '2' || entradaUsu > '5');
-	Jogador_PTR *jogList = (Jogador_PTR*)malloc(qtdJog * sizeof(Jogador_PTR));
+	} while (entradaUsu < '1' || entradaUsu > '5');
+	Jogador_PTR_PTR jogList = (Jogador_PTR*)malloc(qtdJog * sizeof(Jogador_PTR));
 	for (int i = 0; i < qtdJog; i++)
 		jogList[i] = (Jogador_PTR) malloc(sizeof(Jogador));
 	inicializar_jogadores(jogList, qtdJog, baralho);
+	distribuir_cartas(jogList, qtdJog, baralho);
 	iniciar_jogo(mesa, jogList, qtdJog, baralho);
 
 	ordenar_jogadores(jogList, qtdJog);
@@ -132,6 +142,27 @@ int main() {
 		free(jogList[i]);
 	free(jogList);
 	return 0;
+}
+
+Baralho_PTR get_baralho_file(){
+    FILE *file = fopen("baralho.txt", "r");
+    Baralho_PTR bar = NULL;
+    char vec[3];
+    int x;
+    if(file){
+        bar = (Baralho_PTR)malloc(sizeof(Baralho));
+        bar->numCartas = 0;
+        while(!feof(file)){
+            x = fscanf(file, "%s", vec);
+            if(x == 1){
+                bar->numCartas++;
+                bar->carta[bar->numCartas-1].valor = vec[0];
+                bar->carta[bar->numCartas-1].naipe = get_code_naipe(vec[1]);
+            }
+        }
+    }
+    fclose(file);
+    return bar;
 }
 
 void get_cor_padrao(){
@@ -185,13 +216,44 @@ int hexa_to_dec(char hexa){
         return hexa - 'a' + 10;
     if(hexa >= 'A' && hexa <= 'Z')
         return hexa - 'A' + 10;
+    if(hexa == '*')
+        return 20;
     return -1;
+}
+
+void embaralhar(Baralho_PTR baralho){
+    int valRand;
+    Carta aux;
+    for(int i = 0; i < 1000; i++){
+        valRand = rand() % baralho->numCartas;
+        aux = baralho->carta[valRand];
+        for(int j = valRand; j >= 0; j--){
+            if((j-1) >= 0){
+                baralho->carta[j] = baralho->carta[j-1];
+            }
+        }
+        baralho->carta[0] = aux;
+    }
+}
+
+void distribuir_cartas(Jogador_PTR_PTR jogList, int qtdJog, Baralho_PTR baralho){
+    for(int i = 0; i < qtdJog; i++){
+        jogList[i]->maoJogador = (Carta_PTR)malloc(QTD_CARTAS_INICIAIS * sizeof(Carta));
+        jogList[i]->numCartasMaoJogador = QTD_CARTAS_INICIAIS;
+    }
+    for(int i = 0; i < QTD_CARTAS_INICIAIS; i++)
+        for(int j = 0; j < qtdJog; j++)
+            jogList[j]->maoJogador[i] = pegar_carta_baralho(baralho);
+    for(int i = 0; i < qtdJog; i++)
+        ordenar_cartas(jogList[i]->maoJogador, jogList[i]->numCartasMaoJogador);
 }
 
 void exibir_baralho(Baralho_PTR b){
     for(int i = 0;i < b->numCartas; i++){
+        get_cor_padrao();
+        printf("ind:%d - ",i);
         get_cor_naipe(b->carta[i].naipe);
-        printf("ind:%d carta:%c\n", i, b->carta[i].valor);
+        printf("%c%c\n",b->carta[i].valor,get_simb_naipe(b->carta[i].naipe));
     }
     get_cor_padrao();
     printf("\n");
@@ -210,8 +272,8 @@ void inicializar_baralho(Baralho_PTR b){
             b->numCartas++;
         }
     }
-    b->carta[104].naipe = 4; b->carta[104].valor = 'X'; b->numCartas++;
-    b->carta[105].naipe = 4; b->carta[105].valor = 'X'; b->numCartas++;
+    b->carta[104].naipe = 4; b->carta[104].valor = '*'; b->numCartas++;
+    b->carta[105].naipe = 4; b->carta[105].valor = '*'; b->numCartas++;
 }
 
 void remover_carta_baralho(Baralho_PTR b, int indCartaRemover){
@@ -222,9 +284,12 @@ void remover_carta_baralho(Baralho_PTR b, int indCartaRemover){
 }
 
 Carta pegar_carta_baralho(Baralho_PTR b){
-    int valRand = rand() % b->numCartas;
-    Carta c = b->carta[valRand];
-    remover_carta_baralho(b, valRand);
+    int valRand = 0;
+    Carta c;
+    if(b->numCartas){
+        c = b->carta[valRand];
+        remover_carta_baralho(b, valRand);
+    }
     return c;
 }
 
@@ -283,16 +348,7 @@ void inicializar_jogadores(Jogador_PTR *jog, int qtdJog, Baralho_PTR b){
         setbuf(stdin,NULL);
         fgets(jog[i]->nome, TAM_MAX_NOME+1, stdin);
         corrigir_enter(jog[i]->nome);
-
         jog[i]->primeiraJogada = true;
-        jog[i]->numCartasMaoJogador = 0;
-        jog[i]->maoJogador = (Carta_PTR)malloc( QTD_CARTAS_INICIAIS * sizeof(Carta));
-        for(int j = 0; j < 14; j++){
-            jog[i]->numCartasMaoJogador++;
-            if(!jog[i]->maoJogador)error_mem();
-            jog[i]->maoJogador[jog[i]->numCartasMaoJogador-1] = pegar_carta_baralho(b);
-        }
-        ordenar_cartas(jog[i]->maoJogador, jog[i]->numCartasMaoJogador);
     }
 }
 
@@ -438,6 +494,8 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
     bool entradaValida;
     int auxNumMaoJogador = (*jog)->numCartasMaoJogador;
     int soma = 0;
+    char letra;
+    char *auxIndice;
     char *selecionarIndice = NULL;
     Sequencia_PTR seqTemp, seqAux;
     (*mesa)->temp = NULL;
@@ -507,7 +565,50 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
                 setbuf(stdin, NULL);
                 fgets(selecionarIndice, (*mesa)->numTemp+1 , stdin);
                 corrigir_enter(selecionarIndice);
-                if(validar_inidice(selecionarIndice, (*mesa)->numTemp)){
+                if(strlen(selecionarIndice) == 1 && validar_inidice(selecionarIndice, (*mesa)->numTemp)){
+                    seqTemp = &(*mesa)->temp[get_indice_por_letra(selecionarIndice[0])];
+                    for(int i = 0; i < seqTemp->numCartas; i++){
+                        get_cor_naipe(seqTemp->carta[i].naipe);
+                        printf("%c%c ",seqTemp->carta[i].valor, get_simb_naipe(seqTemp->carta[i].naipe));
+                    }
+                    get_cor_padrao();
+                    printf("\n");
+                    letra = 'a';
+                    for(int i = 0; i < seqTemp->numCartas; i++){
+                        printf("%c  ", letra);
+                        if(letra >= '0' && letra <= '9')
+                            letra = (letra == '9') ? 'a' : letra+1;
+                        if(letra >= 'A' && letra <= 'Z')
+                            letra = (letra == 'Z') ? '0' : letra+1;
+                        if(letra >= 'a' && letra <= 'z')
+                            letra = (letra == 'z') ? 'A' : letra+1;
+                    }
+                    printf("\n");
+                }
+                auxIndice = selecionarIndice;
+                selecionarIndice = NULL;
+                selecionarIndice = (char*)realloc(selecionarIndice, seqTemp->numCartas * sizeof(char));
+                printf("Selecione os indices: ");
+                setbuf(stdin, NULL);
+                fgets(selecionarIndice, seqTemp->numCartas+1 , stdin);
+                corrigir_enter(selecionarIndice);
+
+                if(validar_inidice(selecionarIndice, seqTemp->numCartas)){
+                    seqAux = (Sequencia_PTR)malloc(sizeof(Sequencia));
+                    seqAux->numCartas = 0;
+                    seqAux->carta = NULL;
+                    for(int i = 0; i < strlen(selecionarIndice); i++){
+                        seqAux->numCartas++;
+                        seqAux->carta = (Carta_PTR)realloc(seqAux->carta, seqAux->numCartas * sizeof(Carta));
+                        seqAux->carta[i] = seqTemp->carta[get_indice_por_letra(selecionarIndice[i])];
+                    }
+                    remover_cartas_sequencia(seqTemp, selecionarIndice);
+                    if(!seqTemp->numCartas)
+                        remover_sequencia_mesa(*mesa, auxIndice, TIPO_TEMP);
+                    (*mesa)->numTemp++;
+                    (*mesa)->temp = (Sequencia_PTR) realloc((*mesa)->temp, (*mesa)->numTemp * sizeof(Sequencia));
+                    if(!(*mesa)->temp)error_mem();
+                    (*mesa)->temp[(*mesa)->numTemp-1] = *seqAux;
                 }
             }
             break;
@@ -603,6 +704,19 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
     }
 }
 
+void remover_cartas_sequencia(Sequencia_PTR seq, char *ind){
+    int tam = strlen(ind);
+    ordenar_indice(ind, tam);
+    for(int i = (tam-1); i >= 0; i--)
+        for(int j = get_indice_por_letra(ind[i]); j < seq->numCartas; j++)
+            if((j+1) < seq->numCartas)
+                seq->carta[j] = seq->carta[j+1];
+    seq->numCartas -= tam;
+    seq->carta = (Carta_PTR)realloc(seq->carta, seq->numCartas * sizeof(Carta));
+    if(seq->numCartas && !seq->carta)
+        error_mem();
+}
+
 void remover_sequencia_mesa(Mesa_PTR mesa, char* indice, int tipo){
     int tam = strlen(indice);
     ordenar_indice(indice, tam);
@@ -656,10 +770,16 @@ Sequencia_PTR get_sequencia_mao(Carta_PTR mao, char *indSel, int *soma){
 
 bool validar_inidice(char *ind, int max){
     int aux;
-    for(int i = 0; i< strlen(ind); i++){
+    int tam = strlen(ind);
+    if(!tam)
+        return false;
+    for(int i = 0; i < tam; i++){
         aux = get_indice_por_letra(ind[i]);
         if(aux == -1 || aux >= max)
             return false;
+        for(int j = i+1; j < tam; j++)
+            if(ind[i] == ind[j])
+                return false;
     }
     return true;
 }
@@ -700,7 +820,7 @@ bool validar_jogada(Sequencia_PTR seq){
     }else{ /* ordenar por valor */
         ord = hexa_to_dec(seq->carta[i].valor);
         for(i = 0; i < seq->numCartas; i++)
-            if(seq->carta[i].valor != 'X'){
+            if(seq->carta[i].naipe != 4){
                 if(hexa_to_dec(seq->carta[i].valor) != ord)
                     return false;
                 for(int j = 0; j < seq->numCartas; j++)
@@ -725,12 +845,7 @@ void iniciar_jogo(Mesa_PTR mesa, Jogador_PTR *jogList, int qtdJog, Baralho_PTR b
 
 void contagem_pontos(Jogador_PTR jog){
     int soma = 0;
-    for(int i = 0; i < jog->numCartasMaoJogador; i++){
-        if(jog->maoJogador[i].naipe != 4){
-            soma += hexa_to_dec(jog->maoJogador[i].valor);
-        }else{
-            soma += 20;
-        }
-    }
+    for(int i = 0; i < jog->numCartasMaoJogador; i++)
+        soma += hexa_to_dec(jog->maoJogador[i].valor);
     jog->pontos = soma * (-1);
 }
