@@ -59,6 +59,7 @@ typedef Mesa_PTR* Mesa_PTR_PTR;
 
 /* Prototipo de funcoes */
 int main();
+int confirmar_baralho();
 Baralho_PTR get_baralho_file();
 void get_cor_naipe(int);
 void get_cor_padrao();
@@ -144,12 +145,27 @@ int main() {
 	return 0;
 }
 
+/* Pergunta ao usuario qual baralho utilizar caso encontre o aquivo 'baralho.txt' */
+int confirmar_baralho(){
+    char respUsu;
+    do{
+        printf("Arquivo 'baralho.txt' encontrado. Deseja utiliza-lo?[S/N]  ");
+        setbuf(stdin,NULL);
+        scanf("%c",&respUsu);
+    }while(respUsu != 'S' && respUsu != 's' && respUsu != 'N' && respUsu != 'n');
+    system("CLS");
+    if(respUsu == 'S' || respUsu == 's')
+        return 1;
+    return 0;
+}
+
+/* inicializa baralho via file */
 Baralho_PTR get_baralho_file(){
     FILE *file = fopen("baralho.txt", "r");
     Baralho_PTR bar = NULL;
     char vec[3];
     int x;
-    if(file){
+    if(file && confirmar_baralho()){
         bar = (Baralho_PTR)malloc(sizeof(Baralho));
         bar->numCartas = 0;
         while(!feof(file)){
@@ -165,10 +181,12 @@ Baralho_PTR get_baralho_file(){
     return bar;
 }
 
+/* retorna a cor padrao */
 void get_cor_padrao(){
     textcolor(LIGHTGRAY);
 }
 
+/* retorna a numero do naipe baseado no caractere */
 int get_code_naipe(char naipe){
     switch(naipe){
         case '!': return 0;
@@ -180,6 +198,7 @@ int get_code_naipe(char naipe){
     }
 }
 
+/* retorna o caractere baseado no valor numerico do naipe */
 char get_simb_naipe(int naipe){
     switch(naipe){
         case 0: return '!';
@@ -191,6 +210,7 @@ char get_simb_naipe(int naipe){
     }
 }
 
+/* printa os carateres baseado na cor do naipe */
 void get_cor_naipe(int cor){
     switch(cor){
         case 0: textcolor(LIGHTRED); break;
@@ -201,6 +221,7 @@ void get_cor_naipe(int cor){
     }
 }
 
+/* converte decimal para hexadecimal */
 char dec_to_hexa(int dec){
     if(dec >= 0 && dec <= 9)
         return dec + '0';
@@ -209,6 +230,7 @@ char dec_to_hexa(int dec){
     return '\0';
 }
 
+/* converte hexadecimal para decimal */
 int hexa_to_dec(char hexa){
     if(hexa >= '0' && hexa <= '9')
         return hexa - '0';
@@ -221,21 +243,23 @@ int hexa_to_dec(char hexa){
     return -1;
 }
 
+/* pega uma carta aleatoria e coloca na primeira posicao deslocando todo o
+restante do vetor da posicao 1 ate a cartao selecionada.
+Realiza o procedimento mil vezes para certificar que esta embaralhado*/
 void embaralhar(Baralho_PTR baralho){
     int valRand;
     Carta aux;
     for(int i = 0; i < 1000; i++){
         valRand = rand() % baralho->numCartas;
         aux = baralho->carta[valRand];
-        for(int j = valRand; j >= 0; j--){
-            if((j-1) >= 0){
+        for(int j = valRand; j >= 0; j--)
+            if((j-1) >= 0)
                 baralho->carta[j] = baralho->carta[j-1];
-            }
-        }
         baralho->carta[0] = aux;
     }
 }
 
+/* distribui as pecas aos jogadoress de forma rodada */
 void distribuir_cartas(Jogador_PTR_PTR jogList, int qtdJog, Baralho_PTR baralho){
     for(int i = 0; i < qtdJog; i++){
         jogList[i]->maoJogador = (Carta_PTR)malloc(QTD_CARTAS_INICIAIS * sizeof(Carta));
@@ -248,6 +272,7 @@ void distribuir_cartas(Jogador_PTR_PTR jogList, int qtdJog, Baralho_PTR baralho)
         ordenar_cartas(jogList[i]->maoJogador, jogList[i]->numCartasMaoJogador);
 }
 
+/* funcao de desenvolvimento para exibir o baralho */
 void exibir_baralho(Baralho_PTR b){
     for(int i = 0;i < b->numCartas; i++){
         get_cor_padrao();
@@ -259,6 +284,7 @@ void exibir_baralho(Baralho_PTR b){
     printf("\n");
 }
 
+/* inicializa o baralho caso nao encontre o arquivo 'baralho.txt' */
 void inicializar_baralho(Baralho_PTR b){
     b->numCartas = 0;
     for(int i = 0; i < 4; i++){
@@ -276,6 +302,7 @@ void inicializar_baralho(Baralho_PTR b){
     b->carta[105].naipe = 4; b->carta[105].valor = '*'; b->numCartas++;
 }
 
+/* remove qndo uma carta eh tilizada do baralho */
 void remover_carta_baralho(Baralho_PTR b, int indCartaRemover){
     for(int i = indCartaRemover; i < b->numCartas; i++){
         b->carta[i] = b->carta[i + 1];
@@ -283,6 +310,7 @@ void remover_carta_baralho(Baralho_PTR b, int indCartaRemover){
     b->numCartas--;
 }
 
+/* retorna a carta da primeira posicao do baralho */
 Carta pegar_carta_baralho(Baralho_PTR b){
     int valRand = 0;
     Carta c;
@@ -312,6 +340,7 @@ void ordenar_cartas(Carta_PTR vet, int tam){
             }
 }
 
+/* ordenacao bolha */
 void ordenar_jogadores(Jogador_PTR *jog, int qtd){
     Jogador_PTR aux;
     for(int j = qtd - 1; j >= 1; j--)
@@ -334,6 +363,7 @@ void ordenar_indice(char *vet, int tam){
             }
 }
 
+/* corrigir o enter na string */
 void corrigir_enter(char *vet){
     for(int i = 0; i < TAM_MAX_NOME; i++)
         if(vet[i] == '\n'){
@@ -342,6 +372,7 @@ void corrigir_enter(char *vet){
         }
 }
 
+/* inicializa os jogadores */
 void inicializar_jogadores(Jogador_PTR *jog, int qtdJog, Baralho_PTR b){
     for(int i = 0; i < qtdJog; i++){
         printf("Nome do jogador %d [MAX %d carac]: ", (i + 1), TAM_MAX_NOME);
@@ -352,6 +383,7 @@ void inicializar_jogadores(Jogador_PTR *jog, int qtdJog, Baralho_PTR b){
     }
 }
 
+/* verifica condicao de termino de joggo */
 bool finalizar_jogo(Jogador_PTR jog, Baralho_PTR bar){
     if(!jog->numCartasMaoJogador || !bar->numCartas)
         return true;
@@ -369,6 +401,7 @@ void tempo_entre_jogadas(Jogador_PTR jog){
     system("CLS");
 }
 
+/* exibe as cartas na mao do jogador */
 void exibir_mao_jogador(Jogador_PTR jog){
     printf("MAO:\n");
     char var = 'a';
@@ -390,6 +423,7 @@ void exibir_mao_jogador(Jogador_PTR jog){
     printf("\n\n");
 }
 
+/* exibe as cartas na mesa e na temp */
 void exibir_seq_mesa(Mesa_PTR mesa){
     printf("MESA:\n");
     char indice = 'a';
@@ -435,6 +469,7 @@ void exibir_seq_mesa(Mesa_PTR mesa){
     printf("\n");
 }
 
+/* retorna o valor do indice baseado no char recebido */
 int get_indice_por_letra(char c){
     if(c >= 'a' && c <= 'z')
         return c - 'a';
@@ -445,6 +480,7 @@ int get_indice_por_letra(char c){
     return -1;
 }
 
+/* remove as cartas (indice do parametro) da mao jogador */
 void remover_cartas_mao_jogador(Jogador_PTR jog, char *indice){
     int tam = strlen(indice);
     ordenar_indice(indice, tam);
@@ -457,6 +493,7 @@ void remover_cartas_mao_jogador(Jogador_PTR jog, char *indice){
     if(!jog->maoJogador)error_mem();
 }
 
+/* verifica se usuario deseja continuar ou nao com a jogada */
 bool continuar_jogada(){
     char respUsu;
     printf("Jogada Invalida!\n");
@@ -473,6 +510,7 @@ bool continuar_jogada(){
     return false;
 }
 
+/* funcao CORE do programa. Realiza as jogadas */
 void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
     /* BKP das situacoes iniciais (mao e mesa) */
     Jogador_PTR jogBKP = (Jogador_PTR)malloc(sizeof(Jogador));
@@ -523,9 +561,7 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
             printf("|Juntar Temp\t\t| 3 |\n");
         }
         printf("|Mao -> Temp\t\t| 4 |\n");
-        if((*mesa)->numTemp)
-            printf("|Desfazer jogada\t| 5 |\n");
-        printf("|Encerar jogada\t\t| 6 |\n");
+        printf("|Encerar jogada\t\t| 5 |\n");
         printf("|***************************|\n");
 
         do{
@@ -533,9 +569,9 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
             setbuf(stdin,NULL);
             scanf("%c", &entradaUsuario);
             entradaValida = ((entradaUsuario == '1' && (*mesa)->numSequencias) ||
-                             ((entradaUsuario == '2' || entradaUsuario == '3' || entradaUsuario == '5') && (*mesa)->numTemp) ||
+                             ((entradaUsuario == '2' || entradaUsuario == '3') && (*mesa)->numTemp) ||
                              entradaUsuario == '4' ||
-                             entradaUsuario == '6');
+                             entradaUsuario == '5');
             if(!entradaValida)
                 printf("Opcao invalida\n");
         }while(!entradaValida);
@@ -656,9 +692,6 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
             }
             break;
         case '5':
-            printf("Todas as jogadas da rodada (TEMP) serao desfeitas. Deseja continuar?\n");
-            break;
-        case '6':
             flagJogadaValida = true;
             for(int i = 0; i < (*mesa)->numTemp; i++){
                 if(!validar_jogada(&(*mesa)->temp[i])){
@@ -704,6 +737,7 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
     }
 }
 
+/* remove cartas da sequencia (indice via parametro) */
 void remover_cartas_sequencia(Sequencia_PTR seq, char *ind){
     int tam = strlen(ind);
     ordenar_indice(ind, tam);
@@ -717,6 +751,7 @@ void remover_cartas_sequencia(Sequencia_PTR seq, char *ind){
         error_mem();
 }
 
+/* remove sequencias da mesa baseado no indice */
 void remover_sequencia_mesa(Mesa_PTR mesa, char* indice, int tipo){
     int tam = strlen(indice);
     ordenar_indice(indice, tam);
@@ -741,11 +776,13 @@ void remover_sequencia_mesa(Mesa_PTR mesa, char* indice, int tipo){
 	}
 }
 
+/* mensagem de erro padrao caso algum malloc ou realloc retornar NULL */
 void error_mem(){
     printf("Erro ao alocar memoria. O programa ser� encerrado!\n");
     exit(0);
 }
 
+/* pega uma sequencia de cartas da mao do jogador */
 Sequencia_PTR get_sequencia_mao(Carta_PTR mao, char *indSel, int *soma){
     Sequencia_PTR seq = NULL;
     int tam = strlen(indSel);
@@ -768,6 +805,7 @@ Sequencia_PTR get_sequencia_mao(Carta_PTR mao, char *indSel, int *soma){
     return seq;
 }
 
+/* verifica se indice digita eh valido */
 bool validar_inidice(char *ind, int max){
     int aux;
     int tam = strlen(ind);
@@ -831,6 +869,7 @@ bool validar_jogada(Sequencia_PTR seq){
     return true;
 }
 
+/* funcao que troca de jogadores por vez */
 void iniciar_jogo(Mesa_PTR mesa, Jogador_PTR *jogList, int qtdJog, Baralho_PTR b){
     int i = 0, aux;
     do{
@@ -843,6 +882,7 @@ void iniciar_jogo(Mesa_PTR mesa, Jogador_PTR *jogList, int qtdJog, Baralho_PTR b
         contagem_pontos(jogList[j]);
 }
 
+/* realiza a somatoria final dos jogadores */
 void contagem_pontos(Jogador_PTR jog){
     int soma = 0;
     for(int i = 0; i < jog->numCartasMaoJogador; i++)
