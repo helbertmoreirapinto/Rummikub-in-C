@@ -8,6 +8,8 @@
 #define TAM_MAX_CARTAS_BARALHO 106
 #define TIME_ENTRE_JOG 0
 #define QTD_CARTAS_INICIAIS 14
+#define TIPO_SEQ  0
+#define TIPO_TEMP 1
 
 /*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*/
 
@@ -80,10 +82,10 @@ int get_indice_por_letra(char);
 void remover_cartas_mao_jogador(Jogador_PTR, char*);
 bool continuar_jogada();
 void realizar_jogada(Mesa_PTR_PTR, Jogador_PTR_PTR, Baralho_PTR);
-void remover_sequencia_mesa(Mesa_PTR, int);
+void remover_sequencia_mesa(Mesa_PTR, char*, int);
 void error_mem();
 Sequencia_PTR get_sequencia_mao(Carta_PTR, char*, int*);
-bool validar_inidice(char*);
+bool validar_inidice(char*, int);
 bool validar_jogada(Sequencia_PTR);
 void iniciar_jogo(Mesa_PTR, Jogador_PTR*, int, Baralho_PTR);
 void contagem_pontos(Jogador_PTR);
@@ -121,8 +123,7 @@ int main() {
 	/* exibindo pontuacao dos jogadores */
 	printf("|    | JOGADOR              | PONTOS   |\n");
 	for (int i = 0; i < qtdJog; i++)
-		printf("| 0%d | %-20s | %04d pts |\n", (i + 1), jogList[i]->nome,
-				jogList[i]->pontos);
+		printf("| 0%d | %-20s | %04d pts |\n", (i + 1), jogList[i]->nome, jogList[i]->pontos);
 
 	/* jogo finalizado *//* liberando espaco na memoria */
 	free(baralho);
@@ -314,7 +315,7 @@ void tempo_entre_jogadas(Jogador_PTR jog){
 
 void exibir_mao_jogador(Jogador_PTR jog){
     printf("MAO:\n");
-    char var = 'A';
+    char var = 'a';
     for(int i = 0; i < jog->numCartasMaoJogador; i++){
         get_cor_naipe(jog->maoJogador[i].naipe);
         printf("%c%c ",jog->maoJogador[i].valor, get_simb_naipe(jog->maoJogador[i].naipe));
@@ -323,18 +324,30 @@ void exibir_mao_jogador(Jogador_PTR jog){
     printf("\n");
     for(int i = 0; i < jog->numCartasMaoJogador; i++){
         printf("%c  ", var);
-        var = (var != 'Z')? var+1 : 'a';
+        if(var >= '0' && var <= '9')
+            var = (var == '9') ? 'a' : var+1;
+        if(var >= 'A' && var <= 'Z')
+            var = (var == 'Z') ? '0' : var+1;
+        if(var >= 'a' && var <= 'z')
+            var = (var == 'z') ? 'A' : var+1;
     }
     printf("\n\n");
 }
 
 void exibir_seq_mesa(Mesa_PTR mesa){
     printf("MESA:\n");
+    char indice = 'a';
     if(!mesa->numSequencias)
         printf("(Vazio)\n");
     else{
         for(int i = 0; i < mesa->numSequencias; i++){
-            printf("M[%d] -> ",(i+1));
+            printf("M[%c] -> ",indice);
+            if(indice >= '0' && indice <= '9')
+                indice = (indice == '9') ? 'a' : indice+1;
+            if(indice >= 'A' && indice <= 'Z')
+                indice = (indice == 'Z') ? '0' : indice+1;
+            if(indice >= 'a' && indice <= 'z')
+                indice = (indice == 'z') ? 'A' : indice+1;
             for(int j = 0; j < mesa->sequencia[i].numCartas; j++){
                 get_cor_naipe(mesa->sequencia[i].carta[j].naipe);
                 printf("%c%c ", mesa->sequencia[i].carta[j].valor, get_simb_naipe(mesa->sequencia[i].carta[j].naipe));
@@ -344,10 +357,17 @@ void exibir_seq_mesa(Mesa_PTR mesa){
         }
     }
     if(mesa->numTemp){
+        indice = 'a';
         printf("----------------------------------------\n");
         printf("TEMP:\n");
         for(int i = 0; i < mesa->numTemp; i++){
-            printf("T[%d] -> ",(i+1));
+            printf("T[%c] -> ", indice);
+            if(indice >= '0' && indice <= '9')
+                indice = (indice == '9') ? 'a' : indice+1;
+            if(indice >= 'A' && indice <= 'Z')
+                indice = (indice == 'Z') ? '0' : indice+1;
+            if(indice >= 'a' && indice <= 'z')
+                indice = (indice == 'z') ? 'A' : indice+1;
             for(int j = 0; j < mesa->temp[i].numCartas; j++){
                 get_cor_naipe(mesa->temp[i].carta[j].naipe);
                 printf("%c%c ", mesa->temp[i].carta[j].valor, get_simb_naipe(mesa->temp[i].carta[j].naipe));
@@ -360,10 +380,12 @@ void exibir_seq_mesa(Mesa_PTR mesa){
 }
 
 int get_indice_por_letra(char c){
-    if(c >= 'A' && c <= 'Z')
-        return c - 'A';
     if(c >= 'a' && c <= 'z')
-        return c - 'a' + 26;
+        return c - 'a';
+    if(c >= 'A' && c <= 'Z')
+        return c - 'A' + 26;
+    if(c >= '0' && c <= '9')
+        return c - '0' + 52;
     return -1;
 }
 
@@ -383,8 +405,8 @@ bool continuar_jogada(){
     char respUsu;
     printf("Jogada Invalida!\n");
     printf("Opcoes:\n");
-    printf("1 - Continuar com a jogada e arrumar as sequancias\n");
-    printf("2 - Voltar configuracao inicial e passar a vez\n");
+    printf("1 - Continuar com jogada\n");
+    printf("2 - Desfazer jogada e passar a vez\n");
     do{
         printf("Selecione: ");
         setbuf(stdin, NULL);
@@ -411,13 +433,13 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
     mesaBKP->sequencia = seqMesaBKP;
 
     char entradaUsuario;
-    int seqUsu;
+    int indice;
     bool flagJogadaValida;
     bool entradaValida;
     int auxNumMaoJogador = (*jog)->numCartasMaoJogador;
     int soma = 0;
-    char seqJogada[auxNumMaoJogador];
-    Sequencia_PTR seqTemp;
+    char *selecionarIndice = NULL;
+    Sequencia_PTR seqTemp, seqAux;
     (*mesa)->temp = NULL;
     (*mesa)->numTemp = 0;
 
@@ -437,13 +459,15 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
         printf("|Opcoes\t\t\t    |\n");
         printf("|***************************|\n");
         if(!(*jog)->primeiraJogada && (*mesa)->numSequencias)
-            printf("|Mesa\t\t\t| 1 |\n");
+            printf("|Mesa-> Temp\t\t| 1 |\n");
         if((*mesa)->numTemp){
             printf("|Editar Temp\t\t| 2 |\n");
-            printf("|Adicionar na temp\t| 3 |\n");
+            printf("|Juntar Temp\t\t| 3 |\n");
         }
-        printf("|Mao\t\t\t| 4 |\n");
-        printf("|Encerar jogada\t\t| 5 |\n");
+        printf("|Mao -> Temp\t\t| 4 |\n");
+        if((*mesa)->numTemp)
+            printf("|Desfazer jogada\t| 5 |\n");
+        printf("|Encerar jogada\t\t| 6 |\n");
         printf("|***************************|\n");
 
         do{
@@ -451,9 +475,9 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
             setbuf(stdin,NULL);
             scanf("%c", &entradaUsuario);
             entradaValida = ((entradaUsuario == '1' && (*mesa)->numSequencias) ||
-                             ((entradaUsuario == '2' || entradaUsuario == '3') && (*mesa)->numTemp) ||
+                             ((entradaUsuario == '2' || entradaUsuario == '3' || entradaUsuario == '5') && (*mesa)->numTemp) ||
                              entradaUsuario == '4' ||
-                             entradaUsuario == '5');
+                             entradaUsuario == '6');
             if(!entradaValida)
                 printf("Opcao invalida\n");
         }while(!entradaValida);
@@ -461,47 +485,79 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
         switch(entradaUsuario){
         case '1':
             if((*mesa)->numSequencias){
+                selecionarIndice = (char*)realloc(selecionarIndice, (*mesa)->numSequencias * sizeof(char));
                 printf("Selecione a sequencia da MESA: ");
                 setbuf(stdin,NULL);
-                scanf("%d", &seqUsu);
-                if(seqUsu > 0 && (seqUsu-1) < (*mesa)->numSequencias){
-                    seqTemp = &(*mesa)->sequencia[seqUsu-1];
+                fgets(selecionarIndice, (*mesa)->numSequencias+1 , stdin);
+                corrigir_enter(selecionarIndice);
+                if(validar_inidice(selecionarIndice,(*mesa)->numSequencias)){
+                    seqTemp = &(*mesa)->sequencia[get_indice_por_letra(selecionarIndice[0])];
                     (*mesa)->numTemp++;
                     (*mesa)->temp = (Sequencia_PTR)realloc((*mesa)->temp, (*mesa)->numTemp * sizeof(Sequencia));
                     if(!(*mesa)->temp)error_mem();
                     (*mesa)->temp[(*mesa)->numTemp-1] = *seqTemp;
-                    remover_sequencia_mesa(*mesa,(seqUsu-1));
+                    remover_sequencia_mesa(*mesa, selecionarIndice, TIPO_SEQ);
                 }
             }
             break;
         case '2':
             if((*mesa)->numTemp){
+                selecionarIndice = (char*)realloc(selecionarIndice, (*mesa)->numTemp * sizeof(char));
                 printf("Selecione a TEMP: ");
                 setbuf(stdin, NULL);
-                scanf("%d", &seqUsu);
+                fgets(selecionarIndice, (*mesa)->numTemp+1 , stdin);
+                corrigir_enter(selecionarIndice);
+                if(validar_inidice(selecionarIndice, (*mesa)->numTemp)){
+                }
             }
             break;
         case '3':
             if((*mesa)->numTemp){
-                printf("Selecione a TEMP: ");
+                selecionarIndice = (char*)realloc(selecionarIndice, (*mesa)->numTemp * sizeof(char));
+                printf("Selecione o(s) indicies da(s) TEMP(s): ");
                 setbuf(stdin, NULL);
-                scanf("%d", &seqUsu);
+                fgets(selecionarIndice, (*mesa)->numTemp+1 , stdin);
+                corrigir_enter(selecionarIndice);
+                if(validar_inidice(selecionarIndice, (*mesa)->numTemp)){
+                    seqTemp->numCartas = 0;
+                    seqTemp->carta = NULL;
+                    if(strlen(selecionarIndice)){
+                        for(int i = 0; i < strlen(selecionarIndice); i++){
+                            indice = get_indice_por_letra(selecionarIndice[i]);
+                            seqAux = &(*mesa)->temp[indice];
+                            seqTemp->carta = (Carta_PTR)realloc(seqTemp->carta, (seqTemp->numCartas + seqAux->numCartas) * sizeof(Carta));
+                            for(int j = 0; j < seqAux->numCartas; j++)
+                                seqTemp->carta[seqTemp->numCartas + j] = seqAux->carta[j];
+                            seqTemp->numCartas += seqAux->numCartas;
+                        }
+                        remover_sequencia_mesa(*mesa, selecionarIndice, TIPO_TEMP);
+                        (*mesa)->numTemp++;
+                        (*mesa)->temp = (Sequencia_PTR) realloc((*mesa)->temp, (*mesa)->numTemp * sizeof(Sequencia));
+                        if(!(*mesa)->temp)error_mem();
+                        (*mesa)->temp[(*mesa)->numTemp-1] = *seqTemp;
+                    }
+                }
             }
             break;
         case '4':
+            selecionarIndice = (char*)realloc(selecionarIndice, (*jog)->numCartasMaoJogador * sizeof(char));
             printf("Selecione os indices das pecas: ");
             setbuf(stdin,NULL);
-            fscanf(stdin, "%s", seqJogada);
-            seqTemp = get_sequencia_mao((*jog)->maoJogador, seqJogada, &soma);
-            if(validar_inidice(seqJogada)){
+            fgets(selecionarIndice, (*jog)->numCartasMaoJogador+1 , stdin);
+            corrigir_enter(selecionarIndice);
+            if(validar_inidice(selecionarIndice, (*jog)->numCartasMaoJogador)){
+                seqTemp = get_sequencia_mao((*jog)->maoJogador, selecionarIndice, &soma);
                 (*mesa)->numTemp++;
                 (*mesa)->temp = (Sequencia_PTR)realloc((*mesa)->temp, (*mesa)->numTemp * sizeof(Sequencia));
                 if(!(*mesa)->temp)error_mem();
                 (*mesa)->temp[(*mesa)->numTemp-1] = *seqTemp;
-                remover_cartas_mao_jogador(*jog, seqJogada);
+                remover_cartas_mao_jogador(*jog, selecionarIndice);
             }
             break;
-        case '5': /* errado, se sequencia < 30 some com as cartas */
+        case '5':
+            printf("Todas as jogadas da rodada (TEMP) serao desfeitas. Deseja continuar?\n");
+            break;
+        case '6':
             flagJogadaValida = true;
             for(int i = 0; i < (*mesa)->numTemp; i++){
                 if(!validar_jogada(&(*mesa)->temp[i])){
@@ -510,7 +566,7 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
                 }
             }
             if(flagJogadaValida &&(!(*jog)->primeiraJogada || ((*jog)->primeiraJogada && soma >= 30))){
-                if(!(*jog)->primeiraJogada || soma>=30){
+                if(!(*jog)->primeiraJogada || soma >= 30){
                     /* realizar jogada */
                     if((*jog)->primeiraJogada)
                         (*jog)->primeiraJogada = false;
@@ -547,16 +603,28 @@ void realizar_jogada(Mesa_PTR_PTR mesa, Jogador_PTR_PTR jog, Baralho_PTR b){
     }
 }
 
-void remover_sequencia_mesa(Mesa_PTR mesa, int indice){
-	for(int i = indice; i < mesa->numSequencias; i++)
-		if((i+1) < mesa->numSequencias)
-			mesa->sequencia[i] = mesa->sequencia[i+1];
-	mesa->numSequencias--;
-	if(mesa->numSequencias){
-        mesa->sequencia = (Sequencia_PTR)realloc(mesa->sequencia, mesa->numSequencias*sizeof(Sequencia));
-        if(!mesa->sequencia)error_mem();
-	}else
-        mesa->sequencia = NULL;
+void remover_sequencia_mesa(Mesa_PTR mesa, char* indice, int tipo){
+    int tam = strlen(indice);
+    ordenar_indice(indice, tam);
+    if(tipo == TIPO_SEQ){
+        for(int i = (tam-1); i >= 0; i--)
+            for(int j = get_indice_por_letra(indice[i]); j < mesa->numSequencias; j++)
+                if((j+1) < mesa->numSequencias)
+                    mesa->sequencia[j] = mesa->sequencia[j+1];
+        mesa->numSequencias -= tam;
+        mesa->sequencia = (Sequencia_PTR)realloc(mesa->sequencia, mesa->numSequencias * sizeof(Sequencia));
+        if(mesa->numSequencias && !mesa->sequencia)
+            error_mem();
+	}else if(tipo == TIPO_TEMP){
+	    for(int i = (tam-1); i >= 0; i--)
+            for(int j = get_indice_por_letra(indice[i]); j < mesa->numTemp; j++)
+                if((j+1) < mesa->numTemp)
+                    mesa->temp[j] = mesa->temp[j+1];
+        mesa->numTemp -= tam;
+        mesa->temp = (Sequencia_PTR)realloc(mesa->temp, mesa->numTemp * sizeof(Sequencia));
+        if(mesa->numTemp && !mesa->temp)
+            error_mem();
+	}
 }
 
 void error_mem(){
@@ -586,10 +654,13 @@ Sequencia_PTR get_sequencia_mao(Carta_PTR mao, char *indSel, int *soma){
     return seq;
 }
 
-bool validar_inidice(char *ind){
-    for(int i = 0; i< strlen(ind); i++)
-        if(!(ind[i]>='a' && ind[i]<='z') && !(ind[i]>='A' && ind[i]<='Z'))
+bool validar_inidice(char *ind, int max){
+    int aux;
+    for(int i = 0; i< strlen(ind); i++){
+        aux = get_indice_por_letra(ind[i]);
+        if(aux == -1 || aux >= max)
             return false;
+    }
     return true;
 }
 
@@ -601,7 +672,6 @@ bool validar_jogada(Sequencia_PTR seq){
     int ord, aux;
     bool flagCoringa = false;
     Carta cartaAux;
-
     ordenar_cartas(seq->carta, seq->numCartas);
     if(seq->carta[i].naipe == seq->carta[i+1].naipe){ /* ordenar por naipe */
         ord = seq->carta[i].naipe;
@@ -611,7 +681,7 @@ bool validar_jogada(Sequencia_PTR seq){
             if(seq->carta[i].naipe != ord && seq->carta[i].naipe != 4)
                 return false;
             aux++;
-            if((i+1) < seq->numCartas){
+            if((i+1) < seq->numCartas)
                 if(aux != (hexa_to_dec(seq->carta[i+1].valor)-1)){
                     flagCoringa = false;
                     for(int j = i+1; j < seq->numCartas; j++)   /* verificar se tem coringa no restante do vetor */
@@ -622,14 +692,12 @@ bool validar_jogada(Sequencia_PTR seq){
                             seq->carta[i+1] = cartaAux;
                             flagCoringa = true;
                             break;
-
                         }
                     if(!flagCoringa)
                         return false;
                 }
-            }
         }
-    } else { /* ordenar por valor */
+    }else{ /* ordenar por valor */
         ord = hexa_to_dec(seq->carta[i].valor);
         for(i = 0; i < seq->numCartas; i++)
             if(seq->carta[i].valor != 'X'){
