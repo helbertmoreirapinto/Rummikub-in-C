@@ -59,7 +59,7 @@ typedef Mesa_PTR* Mesa_PTR_PTR;
 
 /* Prototipo de funcoes */
 int main();
-void splah();
+void splash();
 int confirmar_baralho();
 Baralho_PTR get_baralho_file();
 void get_cor_naipe(int);
@@ -186,7 +186,7 @@ void splash() {
 	printf(" Trabalho 4: \n");
 	printf(" Uma implementacao do jogo Rummikub\n\n\n");
 	printf("______________________________________________________________________________________________________________\n");
-    while (getchar() != '\n');
+    getch();
 	system("CLS");
 	printf("\n\n\n");
 	printf("            Aluno                             Emails                    USP:                   Posicao\n");
@@ -222,6 +222,7 @@ Baralho_PTR get_baralho_file(){
     fclose(file);
     return bar;
 }
+
 
 /* retorna a cor padrao */
 void get_cor_padrao(){
