@@ -59,6 +59,7 @@ typedef Mesa_PTR* Mesa_PTR_PTR;
 
 /* Prototipo de funcoes */
 int main();
+void splah();
 int confirmar_baralho();
 Baralho_PTR get_baralho_file();
 void get_cor_naipe(int);
@@ -98,7 +99,9 @@ void contagem_pontos(Jogador_PTR);
 /*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*/
 
 int main() {
+    splash();
 	system("MODE con cols=1024 lines=768");
+
 	char entradaUsu;
 	int qtdJog = 0;
 	srand((unsigned) time(NULL));
@@ -157,6 +160,45 @@ int confirmar_baralho(){
     if(respUsu == 'S' || respUsu == 's')
         return 1;
     return 0;
+}
+
+/* funcao splash */
+void splash() {
+    system("CLS");
+    printf("\n\n\n\n\n\n\n\n\n\n");
+    printf("\t\t\t\t \xDB\xDB\xDB\xDB                                              \n");
+	printf("\t\t\t\t\xDB    \xDB                                                   \n");
+	printf("\t\t\t\t\xDB    \xDB                                                   \n");
+	printf("\t\t\t\t\xDB\xDB\xDB\xDB\xDB                                               \n");
+	printf("\t\t\t\t\xDB\xDB      \xDB    \xDB  \xDB   \xDB  \xDB   \xDB \xDf \xDB  \xDB \xDB  \xDB \xDB                     \n");
+	printf("\t\t\t\t\xDB \xDB     \xDB    \xDB  \xDB\xDF \xDF\xDB  \xDB\xDF \xDF\xDB \xDB \xDB \xDB  \xDB  \xDB \xDB\xDB\xDB                        \n");
+    printf("\t\t\t\t\xDB  \xDB    \xDB    \xDB  \xDB \xDB \xDB  \xDB \xDB \xDB \xDB \xDB\xDB   \xDB  \xDB \xDB  \xDB                        \n");
+	printf("\t\t\t\t\xDB   \xDB   \xDB\xDB\xDB\xDB\xDB\xDB  \xDB   \xDB  \xDB   \xDB \xDB \xDB \xDf\xDB \xDB\xDB\xDB\xDB \xDB\xDB\xDB                                      \n");
+	printf("\t\t\t\t \n");
+	printf("\n\n\n\n\n\n\n\n");
+    printf("                                           Pessione ENTER");
+	getch();
+	system("CLS");
+
+	printf("\n\n\n\n\n                                               Universidade de Sao Paulo                  \n\n");
+	printf("                                          Introducao a Ciencia da Computacao I                \n\n");
+	printf("Participacao: Helbert Moreira\n              Renata Oliveira\n              Vitoria Ianni\n              Antonio Sebastian\n              Nicolas Ribeiro\n              Gustavo Mendes\n\n\n");
+	printf(" Trabalho 4: \n");
+	printf(" Uma implementacao do jogo Rummikub\n\n\n");
+	printf("______________________________________________________________________________________________________________\n");
+    while (getchar() != '\n');
+	system("CLS");
+	printf("\n\n\n");
+	printf("            Aluno                             Emails                    USP:                   Posicao\n");
+	printf("        Antonio Sebastian               antonisebastian[at]usp.br       10797781                   1      \n");
+	printf("        Renata  Oliveira                renata.oliveira.brito[at]usp.br 10373663                   2     \n");
+	printf("        Helbert Moreira Pinto           helbert.moreira[at]usp.br       10716504                   3     \n");
+	printf("        Vitoria Ianni                   victoria.ianni[at]usp.br        10255900                   0     \n");
+	printf("        Nicolas Ribeiro                 nicolas.batistuti[at]usp.br     10408351                   5     \n");
+	printf("        Gustavo Machado Mendes          gummendes101[at]usp.br          10821151                   4     \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+	printf("                                                Pessione ENTER para iniciar\n\n");
+	getch();
+	system("CLS");
 }
 
 /* inicializa baralho via file */
